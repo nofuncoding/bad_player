@@ -15,7 +15,7 @@ use crate::{term::{Renderer, RenderSetting}, image_decode::ImgDecoder};
 #[command(about = "A Command-Line Video Player", long_about = None)]
 struct Args {
     // #[arg(long, short, value_parser = file_parser)]
-    // video_path: PathBuf,
+    // video_path: Option<PathBuf>,
 
     /// Path where there storages frame images
     #[arg(long, short, value_parser = dir_parser)]
@@ -23,16 +23,18 @@ struct Args {
 
     /// Print Log to Terminal
     #[arg(long, short)]
-    logging: bool,
+    verbose: bool,
 
     /// Render Speed
     #[arg(long, default_value_t=30.00)]
     fps: f64,
 
+    /// Render Frames while Reading
     #[arg(long)]
     instant_render: bool
 }
 
+/*
 fn file_parser(s: &str) -> Result<PathBuf, String> {
     let path = PathBuf::from(s);
     if !path.is_file() {
@@ -41,6 +43,7 @@ fn file_parser(s: &str) -> Result<PathBuf, String> {
         Ok(path)
     }
 }
+*/
 
 fn dir_parser(s: &str) -> Result<PathBuf, String> {
     let path = PathBuf::from(s);
@@ -54,7 +57,7 @@ fn dir_parser(s: &str) -> Result<PathBuf, String> {
 fn main() {
     let args = Args::parse();
     // FIXME: ugly
-    if args.logging {
+    if args.verbose {
         env_logger::Builder::from_env(
             env_logger::Env::default()
             .default_filter_or("info")
