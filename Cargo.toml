@@ -1,0 +1,20 @@
+[package]
+name = "bad_player"
+version = "0.2.0"
+edition = "2021"
+authors = ["NoFun"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+crossterm = "0.27.0"
+indicatif = "0.17"
+image = "0.24.7"
+env_logger = "0.10"
+clap = { version = "4.4.6", features = ["derive"] }
+log = "0.4.20"
+anyhow = "1.0.75"
+# ffmpeg-next = "6.0"
+# video-rs = "0.4"
+# rsmpeg = { version = "0.14.1", features = ["ffmpeg6"]}
+# gstreamer = "0.21.0"
