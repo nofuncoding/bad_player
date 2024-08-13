@@ -22,5 +22,6 @@ cargo run -- -i /path/to/images
 
 ## TODOs
 
-- [ ] 内存占用优化
+- [x] 内存占用优化
 - [x] 播放优化
+- [ ] GPU 加速
