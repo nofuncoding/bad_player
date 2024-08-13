@@ -3,7 +3,7 @@ use crossterm::{
     cursor, terminal, style::{self, Stylize},
     ExecutableCommand, QueueableCommand
 };
-use image::{Rgb, Pixel};
+use image::{ImageBuffer, Pixel, Rgb};
 use std::{
     io::{self, Write},
     thread,
@@ -31,9 +31,9 @@ pub struct Renderer {
 
     stdout: io::Stdout,
 
-    inited: bool,
+    initialized: bool,
     /// Storage last played frame
-    last_frame: Vec<Rgb<u16>>,
+    last_frame: Option<ImageBuffer<Rgb<u8>, Vec<u8>>>,
 
     setting: RenderSetting,
 }
@@ -48,8 +48,8 @@ impl Renderer {
             frame_size: term_size,
             frame_now: 0,
             stdout: io::stdout(),
-            inited: false,
-            last_frame: vec![],
+            initialized: false,
+            last_frame: None,
             setting,
         }
     }
@@ -67,13 +67,14 @@ impl Renderer {
         self.terminal_size
     }
 
-    pub fn start_render(&mut self, data: Vec<Vec<Rgb<u16>>>) -> anyhow::Result<()> {
-        if !self.inited {
+    pub fn start_render(&mut self, data: Vec<ImageBuffer<Rgb<u8>, Vec<u8>>>) -> anyhow::Result<()> {
+        if !self.initialized {
             return Err(anyhow!("Renderer not inited"));
         }
         
         let fps = time::Duration::from_secs_f64(1.0 / self.setting.fps);
 
+        // TODO: skip frames
         for frame in data {
             let now = time::Instant::now();
 
@@ -83,59 +84,65 @@ impl Renderer {
                 thread::sleep(fps - now.elapsed());
             }
         }
+
+        self.stdout.execute(terminal::LeaveAlternateScreen)?;
+
         Ok(())
     }
 
     pub fn init(&mut self) -> anyhow::Result<()> {
-        self.stdout.execute(cursor::Hide)?
+        self.stdout.execute(terminal::EnterAlternateScreen)?
+                    .execute(cursor::Hide)?
                     .execute(terminal::Clear(terminal::ClearType::All))?;
                     
-        self.inited = true;
+        self.initialized = true;
         Ok(())
     }
 
-    pub fn render_frame(&mut self, data: Vec<Rgb<u16>>) -> anyhow::Result<()> {
-        if !self.inited {
+    pub fn render_frame(&mut self, data: ImageBuffer<Rgb<u8>, Vec<u8>>) -> anyhow::Result<()> {
+
+        // info!("Frame {}", self.frame_now);
+
+        if !self.initialized {
             return Err(anyhow!("Renderer not inited"));
         }
 
-        let start_x = (self.terminal_size.0 / 2) - (self.frame_size.0 / 2);
+        //let start_x = (self.terminal_size.0 / 2) - (self.frame_size.0 / 2);
 
         self.frame_now += 1;
 
         self.stdout.execute(cursor::MoveTo(0,0))?
-        .execute(style::Print(format!("Frame {}", self.frame_now)))?
-        .execute(style::Print("\nBy NoFun"))?;
+            .execute(style::Print(format!("Frame {}", self.frame_now)))?
+            .execute(style::Print("\nBy NoFun"))?;
 
-        let mut x = start_x;
+        let mut x = 0;
         let mut y = 0;
 
         self.stdout.execute(terminal::BeginSynchronizedUpdate)?;
 
-        for index in 0..data.len() {
-            let pixel = data[index];
-            let color = pixel.channels();
-            let r = color[0] as u8;
-            let g = color[1] as u8;
-            let b = color[2] as u8;
+        for row in data.rows() {
+            x = 0;
 
-            if self.last_frame.len() == 0 || self.last_frame[index].channels() != color {
+            for pixel in row {
+                let colors = pixel.channels();
+                let r = colors[0];
+                let g = colors[1];
+                let b = colors[2];
+
                 self.stdout
-                .queue(cursor::MoveTo(x, y))?
-                .queue(style::PrintStyledContent("█".with(
-                    style::Color::Rgb { r, g, b }
-                )))?;
+                    .queue(cursor::MoveTo(x, y))?
+                    .queue(style::PrintStyledContent("█".with(
+                        style::Color::Rgb { r, g, b }
+                    )))?;
+                
+                x += 1;
             }
 
-            x += 1;
-            if x > self.frame_size.0 + start_x - 1 {
-                x = start_x;
-                y += 1;
-                self.stdout.flush()?;
-            }
+            self.stdout.flush()?;
+            y += 1;
         }
 
-        self.last_frame = data;
+        //self.last_frame = Some(data);
         self.stdout.execute(terminal::EndSynchronizedUpdate)?;
         Ok(())
     }

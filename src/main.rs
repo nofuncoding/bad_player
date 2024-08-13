@@ -8,7 +8,7 @@ extern crate log;
 mod image_decode;
 mod term;
 
-use crate::{term::{Renderer, RenderSetting}, image_decode::ImgDecoder};
+use crate::{term::{Renderer, RenderSetting}, image_decode::InstantImageDecoder};
 
 #[derive(Parser, Debug)]
 #[command(author, version)]
@@ -67,17 +67,21 @@ fn main() {
     }
     
     info!("Creating Renderer");
-    let mut renderer = Renderer::new(RenderSetting{ fps: args.fps });
+    let mut renderer = Renderer::new(RenderSetting{
+        fps: args.fps,
+    });
     
+    image_decode::check_cpu_extensions();
+
     if args.instant_render {
-        let mut decoder = ImgDecoder::new(args.image_dir_path);
+        let mut decoder = InstantImageDecoder::new(args.image_dir_path);
         
         renderer.init().unwrap();
         for _ in 0..decoder.get_files_count() {
             decoder.play_next_frame(&mut renderer).unwrap();
         }
     } else {
-        let data = image_decode::start(args.image_dir_path, &mut renderer).unwrap();
+        let data = image_decode::full_load(args.image_dir_path, &mut renderer).unwrap();
         renderer.init().unwrap();
         renderer.start_render(data).unwrap();
     }
