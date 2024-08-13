@@ -115,7 +115,7 @@ impl Renderer {
             .execute(style::Print(format!("Frame {}", self.frame_now)))?
             .execute(style::Print("\nBy NoFun"))?;
 
-        let mut x = 0;
+        let mut x;
         let mut y = 0;
 
         self.stdout.execute(terminal::BeginSynchronizedUpdate)?;
